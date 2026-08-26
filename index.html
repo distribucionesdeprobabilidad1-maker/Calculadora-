@@ -24,7 +24,7 @@
     --yellow:#c9962e; --coral:#e2725b;
     --coral-dim: rgba(226,114,91,0.16); --yellow-dim: rgba(201,150,46,0.3);
     --line: rgba(20,24,20,0.14);
-    --sky:#4fa8cf; --sky-dim: rgba(79,168,207,0.16);
+    --sky:#0e7ba6; --sky-dim: rgba(14,123,166,0.16);
     --pink:#d5679a; --pink-dim: rgba(213,103,154,0.16);
     --axis-strong: rgba(20,24,20,0.35); --axis-soft: rgba(20,24,20,0.28);
     --card-border: rgba(20,24,20,0.1);
@@ -166,8 +166,8 @@
 
   <div class="card">
     <div class="segment">
-      <button id="modeVP" class="active">Valor → P</button>
-      <button id="modePV">P → Valor</button>
+      <button id="modeVP" class="active">Valor → P(X)</button>
+      <button id="modePV">P(X) → Valor</button>
     </div>
 
     <div class="label-row">Región de interés</div>
@@ -564,12 +564,32 @@ function renderPresets(){
   Array.from(compBox.children).forEach(function(b){ b.addEventListener('click', function(){ input.value=b.getAttribute('data-v'); render(); saveState(); }); });
 }
 
+function distSymbolFor(distKey, params){
+  if(distKey==='normal') return (params.mu===0 && params.sigma===1) ? 'Z' : 'X';
+  if(distKey==='t') return 'T';
+  if(distKey==='chi2') return 'χ²';
+  if(distKey==='f') return 'F';
+  if(distKey==='binomial'||distKey==='poisson'||distKey==='hyper') return 'X';
+  return null;
+}
+function updateDistLabels(dist, params){
+  var sym=distSymbolFor(state.distKey, params);
+  var vpBtn=document.getElementById('modeVP'), pvBtn=document.getElementById('modePV');
+  if(sym){ vpBtn.textContent=sym+' → P(X)'; pvBtn.textContent='P(X) → '+sym; }
+  else{ vpBtn.textContent='Valor → P(X)'; pvBtn.textContent='P(X) → Valor'; }
+  var inputLabel=document.getElementById('inputLabel');
+  if(state.mode==='vp'){ inputLabel.textContent = (sym && dist.type!=='discrete') ? ('Valor de '+sym) : dist.valueLabel; }
+  else{ inputLabel.textContent='Probabilidad (p)'; }
+}
+
 function render(){
   var dist=currentDist(), params=readParams(dist);
   var raw=parseFloat((input.value||'').toString().replace(',','.'));
   var resultValue=document.getElementById('resultValue');
   var resultFormula=document.getElementById('resultFormula');
   var resultLabel=document.getElementById('resultLabel');
+
+  updateDistLabels(dist, params);
 
   var perr=validateParams(state.distKey, params);
   if(perr){
