@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html><!DOCTYPE html>
 <html lang="es" data-theme="dark">
 <head>
 <meta charset="UTF-8">
@@ -528,7 +528,7 @@ function renderDiscreteChart(dist,params,tail,x){
 
 var tailFormulas={ left:'P(X ≤ x)', right:'P(X ≥ x)', exact:'P(X = x)', central:'P(c−d < X < c+d)', two:'P(|X−c| > d)' };
 var tailPlain={ left:'Izquierda', right:'Derecha', exact:'Exacta', central:'Central', two:'Dos colas' };
-function formulaText(dist,tail){ return dist.symmetric ? tailPlain[tail] : tailFormulas[tail]; }
+function formulaText(dist,tail){ return tailPlain[tail]; }
 
 function tailNotationMap(sym){
   var big='<span class="sym-big">'+sym+'</span>';
@@ -550,7 +550,7 @@ function updateTailNotations(sym){
 function buildTailPills(){
   var dist=currentDist(), opts;
   if(dist.type==='discrete'){
-    opts=[{k:'left',l:'Acumulada',m:'P(X≤x)'},{k:'right',l:'Cola derecha',m:'P(X≥x)'},{k:'exact',l:'Exacta',m:'P(X=x)'}];
+    opts=[{k:'left',l:'Izquierda',m:'P(X≤x)'},{k:'right',l:'Derecha',m:'P(X≥x)'},{k:'exact',l:'Exacta',m:'P(X=x)'}];
     if(state.mode==='pv') opts=opts.filter(function(o){return o.k!=='exact';});
   } else if(dist.symmetric){
     opts=[{k:'left',l:'Izquierda'},{k:'right',l:'Derecha'},{k:'central',l:'Central'},{k:'two',l:'Dos colas'}];
