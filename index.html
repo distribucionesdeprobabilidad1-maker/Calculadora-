@@ -36,9 +36,6 @@
   html,body{margin:0;padding:0;}
   body{
     background:var(--board);
-    background-image:
-      repeating-linear-gradient(0deg, var(--grid-line) 0px, var(--grid-line) 1px, transparent 1px, transparent 24px),
-      repeating-linear-gradient(90deg, var(--grid-line) 0px, var(--grid-line) 1px, transparent 1px, transparent 24px);
     color:var(--chalk); font-family:'Inter', sans-serif; min-height:100vh;
     padding:22px 16px 40px; -webkit-font-smoothing:antialiased;
   }
@@ -54,8 +51,8 @@
   .dist-select{width:100%; background:rgba(0,0,0,0.28); border:1px solid var(--line); border-radius:9px; color:var(--chalk); font-family:'JetBrains Mono', monospace; font-size:14.5px; padding:11px; margin-bottom:2px; appearance:none; -webkit-appearance:none;}
   .params-row{display:flex; flex-wrap:wrap; gap:10px; margin-top:10px;}
   .param-field{flex:1; min-width:88px;}
-  .param-field label{display:block; font-family:'JetBrains Mono',monospace; font-size:9.5px; color:var(--chalk-dim); margin-bottom:4px; line-height:1.3;}
-  .param-field input{width:100%; background:rgba(0,0,0,0.28); border:1px solid var(--line); border-radius:8px; color:var(--chalk); font-family:'JetBrains Mono',monospace; font-size:14px; padding:8px 6px; text-align:center; outline:none;}
+  .param-field label{display:block; font-family:'JetBrains Mono',monospace; font-size:12.5px; color:var(--chalk-dim); margin-bottom:4px; line-height:1.3;}
+  .param-field input{width:100%; background:rgba(0,0,0,0.28); border:1px solid var(--line); border-radius:8px; color:var(--chalk); font-family:'JetBrains Mono',monospace; font-size:17px; padding:8px 6px; text-align:center; outline:none;}
   .param-field input:focus{border-color:var(--yellow);}
 
   .curve-box{padding:6px 4px 2px;}
@@ -73,6 +70,7 @@
 
   .segment{display:flex; background:rgba(0,0,0,0.25); border-radius:10px; padding:4px; gap:4px; margin-bottom:10px;}
   .segment button{flex:1; border:none; background:transparent; color:var(--chalk-dim); font-family:'JetBrains Mono', monospace; font-size:11.5px; font-weight:500; padding:9px 4px; border-radius:7px; cursor:pointer;}
+  .segment button .btn-sym-t{font-size:1.25em; display:inline-block;}
   .segment button.active{background:var(--yellow); color:#1c2418; font-weight:700;}
   .segment button#modeVP.active{background:var(--sky); color:#0f2530;}
   .segment button#modePV.active{background:var(--pink); color:#2f0f1c;}
@@ -81,6 +79,8 @@
   .pill{border:1px solid var(--line); background:transparent; color:var(--chalk); font-family:'Inter',sans-serif; font-size:12px; padding:7px 10px; border-radius:20px; cursor:pointer; line-height:1.2;}
   .pill.active{background:var(--coral-dim); border-color:var(--coral); color:var(--chalk);}
   .pill .math{font-family:'JetBrains Mono',monospace; font-size:10.5px; display:block; margin-top:1px; opacity:0.85;}
+  .pill .math .sym-big{font-size:1.15em;}
+  .pill .math .sym-small{font-size:0.8em; opacity:0.8;}
 
   .input-row{display:flex; align-items:center; gap:8px; margin-top:12px;}
   .stepper{width:38px; height:38px; border-radius:9px; border:1px solid var(--line); background:rgba(0,0,0,0.2); color:var(--chalk); font-size:17px; display:flex; align-items:center; justify-content:center; cursor:pointer; user-select:none; flex-shrink:0;}
@@ -530,6 +530,23 @@ var tailFormulas={ left:'P(X ≤ x)', right:'P(X ≥ x)', exact:'P(X = x)', cent
 var tailPlain={ left:'Izquierda', right:'Derecha', exact:'Exacta', central:'Central', two:'Dos colas' };
 function formulaText(dist,tail){ return dist.symmetric ? tailPlain[tail] : tailFormulas[tail]; }
 
+function tailNotationMap(sym){
+  var big='<span class="sym-big">'+sym+'</span>';
+  var small='<span class="sym-small">'+sym+'</span>';
+  return {
+    left:'P('+big+' ≤ '+small+')',
+    right:'P('+big+' ≥ '+small+')',
+    central:'P(−|'+small+'| ≤ '+big+' ≤ |'+small+'|)',
+    two:'2P('+big+' ≥ |'+small+'|)'
+  };
+}
+function updateTailNotations(sym){
+  if(!sym) return;
+  var map=tailNotationMap(sym);
+  Array.from(document.querySelectorAll('#tailPills .math[data-notation]')).forEach(function(el){
+    el.innerHTML = map[el.getAttribute('data-notation')] || '';
+  });
+}
 function buildTailPills(){
   var dist=currentDist(), opts;
   if(dist.type==='discrete'){
@@ -538,17 +555,21 @@ function buildTailPills(){
   } else if(dist.symmetric){
     opts=[{k:'left',l:'Izquierda'},{k:'right',l:'Derecha'},{k:'central',l:'Central'},{k:'two',l:'Dos colas'}];
   } else {
-    opts=[{k:'left',l:'Izquierda',m:'P(X≤x)'},{k:'right',l:'Derecha',m:'P(X≥x)'}];
+    opts=[{k:'left',l:'Izquierda'},{k:'right',l:'Derecha'}];
   }
   if(!opts.some(function(o){return o.k===state.tail;})) state.tail=opts[0].k;
   var box=document.getElementById('tailPills');
-  box.innerHTML=opts.map(function(o){return '<button class="pill'+(o.k===state.tail?' active':'')+'" data-tail="'+o.k+'">'+o.l+(o.m?'<span class="math">'+o.m+'</span>':'')+'</button>';}).join('');
+  box.innerHTML=opts.map(function(o){
+    var notation = (dist.type!=='discrete') ? '<span class="math" data-notation="'+o.k+'"></span>' : (o.m?'<span class="math">'+o.m+'</span>':'');
+    return '<button class="pill'+(o.k===state.tail?' active':'')+'" data-tail="'+o.k+'">'+o.l+notation+'</button>';
+  }).join('');
   Array.from(box.children).forEach(function(b){
     b.addEventListener('click', function(){
       Array.from(box.children).forEach(function(x){x.classList.remove('active');});
       b.classList.add('active'); state.tail=b.getAttribute('data-tail'); render(); saveState();
     });
   });
+  if(dist.type!=='discrete') updateTailNotations(distNotationSymbol(state.distKey, readParams(dist)));
 }
 
 function renderPresets(){
@@ -572,14 +593,20 @@ function distSymbolFor(distKey, params){
   if(distKey==='binomial'||distKey==='poisson'||distKey==='hyper') return 'X';
   return null;
 }
+function distNotationSymbol(distKey, params){
+  var s=distSymbolFor(distKey, params);
+  return (distKey==='t') ? 't' : s;
+}
 function updateDistLabels(dist, params){
-  var sym=distSymbolFor(state.distKey, params);
+  var sym=distNotationSymbol(state.distKey, params);
+  var symHtml = (state.distKey==='t') ? '<span class="btn-sym-t">'+sym+'</span>' : sym;
   var vpBtn=document.getElementById('modeVP'), pvBtn=document.getElementById('modePV');
-  if(sym){ vpBtn.textContent=sym+' → P(X)'; pvBtn.textContent='P(X) → '+sym; }
-  else{ vpBtn.textContent='Valor → P(X)'; pvBtn.textContent='P(X) → Valor'; }
+  if(sym){ vpBtn.innerHTML=symHtml+' → Probabilidad'; pvBtn.innerHTML='Probabilidad → '+symHtml; }
+  else{ vpBtn.textContent='Valor → Probabilidad'; pvBtn.textContent='Probabilidad → Valor'; }
   var inputLabel=document.getElementById('inputLabel');
   if(state.mode==='vp'){ inputLabel.textContent = (sym && dist.type!=='discrete') ? ('Valor de '+sym) : dist.valueLabel; }
-  else{ inputLabel.textContent='Probabilidad (p)'; }
+  else{ inputLabel.textContent='Probabilidad'; }
+  if(dist.type!=='discrete') updateTailNotations(sym);
 }
 
 function render(){
@@ -622,7 +649,7 @@ function render(){
     var xForChart = dist.type==='discrete' ? Math.round(val) : val;
     resultValue.textContent = dist.type==='discrete' ? Math.round(val) : fmt(val,4);
     resultValue.classList.remove('is-prob','is-error'); resultValue.classList.add('is-value');
-    resultFormula.textContent=formulaText(dist,state.tail)+(dist.symmetric?'':' (inversa)');
+    resultFormula.textContent = dist.type==='discrete' ? ('Valor '+distNotationSymbol(state.distKey, params)) : distNotationSymbol(state.distKey, params);
     if(dist.type==='discrete') renderDiscreteChart(dist,params,state.tail,xForChart); else renderContinuousChart(dist,params,state.tail,xForChart);
   }
 }
@@ -640,7 +667,7 @@ function refreshUIForDistChange(useSaved){
       }
     });
   }
-  document.getElementById('inputLabel').textContent = state.mode==='vp' ? dist.valueLabel : 'Probabilidad (p)';
+  document.getElementById('inputLabel').textContent = state.mode==='vp' ? dist.valueLabel : 'Probabilidad';
   input.value = (applySaved && s.mainValue!==undefined) ? s.mainValue : (state.mode==='vp' ? dist.defaultValue : 0.95);
   syncInputColor();
   updateSignToggle();
@@ -689,7 +716,7 @@ document.getElementById('modePV').addEventListener('click', function(){
   state.mode='pv';
   document.getElementById('modePV').classList.add('active');
   document.getElementById('modeVP').classList.remove('active');
-  document.getElementById('inputLabel').textContent='Probabilidad (p)';
+  document.getElementById('inputLabel').textContent='Probabilidad';
   input.value=0.95;
   syncInputColor();
   updateSignToggle();
