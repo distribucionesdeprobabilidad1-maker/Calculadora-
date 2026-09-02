@@ -1,4 +1,4 @@
-<!DOCTYPE html><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es" data-theme="dark">
 <head>
 <meta charset="UTF-8">
@@ -447,7 +447,13 @@ function chartDomain(dist,params){
   var f=function(x){ return dist.cdf(x,params); };
   var lo=bisectGeneric(f,0.001,b[0],b[1],true,80);
   var hi=bisectGeneric(f,0.999,b[0],b[1],true,80);
-  if(dist.nonneg) lo=Math.max(0,lo);
+  if(dist.nonneg){
+    lo=0;
+  } else if(dist.symmetric){
+    var c=dist.center(params);
+    var halfWidth=Math.max(c-lo, hi-c);
+    lo=c-halfWidth; hi=c+halfWidth;
+  }
   if(hi-lo<1e-6) hi=lo+1;
   return [lo,hi];
 }
@@ -488,9 +494,10 @@ function renderContinuousChart(dist,params,tail,x){
   document.getElementById('shadeB').setAttribute('d',shadeB);
 
   var html='';
-  for(var ti=0; ti<=5; ti++){
-    var tv=xmin+(xmax-xmin)*ti/5, px=toX(tv);
-    html+='<line class="tick" x1="'+px+'" y1="140" x2="'+px+'" y2="145"></line><text class="tick-label" x="'+px+'" y="156" text-anchor="middle">'+tv.toFixed(1)+'</text>';
+  for(var ti=0; ti<=4; ti++){
+    var tv=xmin+(xmax-xmin)*ti/4, px=toX(tv);
+    var tvLabel=tv.toFixed(1); if(tvLabel.slice(-2)==='.0') tvLabel=tvLabel.slice(0,-2);
+    html+='<line class="tick" x1="'+px+'" y1="140" x2="'+px+'" y2="145"></line><text class="tick-label" x="'+px+'" y="156" text-anchor="middle">'+tvLabel+'</text>';
   }
   document.getElementById('ticks').innerHTML=html;
 }
@@ -649,7 +656,7 @@ function render(){
     var xForChart = dist.type==='discrete' ? Math.round(val) : val;
     resultValue.textContent = dist.type==='discrete' ? Math.round(val) : fmt(val,4);
     resultValue.classList.remove('is-prob','is-error'); resultValue.classList.add('is-value');
-    resultFormula.textContent = dist.type==='discrete' ? ('Valor '+distNotationSymbol(state.distKey, params)) : distNotationSymbol(state.distKey, params);
+    resultFormula.textContent = distNotationSymbol(state.distKey, params);
     if(dist.type==='discrete') renderDiscreteChart(dist,params,state.tail,xForChart); else renderContinuousChart(dist,params,state.tail,xForChart);
   }
 }
