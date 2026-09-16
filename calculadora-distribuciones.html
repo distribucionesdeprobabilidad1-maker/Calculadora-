@@ -119,7 +119,6 @@
   .exam-alerts{font-size:11px; color:var(--chalk-dim); padding:6px 14px; flex-shrink:0;}
   .exam-alerts.warn{color:var(--coral);}
   .exam-body{flex:1; overflow-y:auto; padding:16px;}
-  .exam-lock{position:fixed; bottom:14px; right:14px; width:34px; height:34px; border-radius:50%; background:rgba(0,0,0,0.3); border:1px solid var(--line); display:flex; align-items:center; justify-content:center; font-size:14px; cursor:pointer; color:var(--chalk-dim); z-index:10001;}
   .pin-modal{position:fixed; inset:0; background:rgba(0,0,0,0.6); display:none; align-items:center; justify-content:center; z-index:10002;}
   .pin-modal.show{display:flex;}
   .pin-box{background:var(--board-2); border:1px solid var(--line); border-radius:12px; padding:20px; width:240px; text-align:center;}
@@ -192,19 +191,10 @@
 
   <footer>Aproximaciones numéricas: Lanczos (Γ), Numerical Recipes (γ incompleta, β incompleta), bisección para inversas.</footer>
 
-  <button class="examBtn" id="openExamSetup">🔒 Configurar modo examen</button>
+  <button class="examBtn" id="examToggleBtn">Activar modo examen</button>
 </div>
 
 <div class="exam-overlay" id="examOverlay">
-  <div id="examSetupScreen" class="exam-setup">
-    <div class="eyebrow">Modo examen</div>
-    <h2>Antes de empezar</h2>
-    <p>Esto pone la calculadora en pantalla completa y <strong>registra cada vez que se sale de la pestaña o se pierde el foco</strong> (cambiar de app, minimizar), junto con cuánto tiempo estuvo afuera. Mientras el modo examen está activo, la app le pide al celular que mantenga la pantalla encendida, para que no se bloquee sola por inactividad y eso no quede registrado como una salida.</p>
-    <div class="exam-field"><label>PIN para salir (será asignado por el docente)</label><input id="examPin" type="text" inputmode="numeric" placeholder="Ej: 4271"></div>
-    <button class="exam-activate" id="startExamBtn">Activar modo examen</button>
-    <button class="examBtn" id="cancelExamSetup" style="margin-top:10px;">Cancelar</button>
-  </div>
-
   <div id="examActiveScreen" style="display:none; flex-direction:column; height:100%;">
     <div class="exam-banner">
       <span class="tag">● MODO EXAMEN</span>
@@ -212,14 +202,22 @@
     </div>
     <div class="exam-alerts" id="examAlerts">Salidas detectadas: 0</div>
     <div class="exam-body" id="examBody"></div>
-    <div class="exam-lock" id="examLockBtn">🔒</div>
+  </div>
+</div>
+
+<div class="pin-modal" id="examSetupModal">
+  <div class="pin-box">
+    <div class="eyebrow">Ingresá el PIN</div>
+    <input id="examSetupPin" type="text" inputmode="numeric" maxlength="8" placeholder="Ej: 4271">
+    <button id="examSetupConfirm">Activar modo examen</button>
+    <div id="examSetupError" style="color:var(--coral); font-size:11px; margin-top:8px;"></div>
   </div>
 </div>
 
 <div class="pin-modal" id="pinModal">
   <div class="pin-box">
     <div class="eyebrow">Ingresá el PIN</div>
-    <input id="pinInput" type="password" inputmode="numeric" maxlength="8">
+    <input id="pinInput" type="text" inputmode="numeric" maxlength="8">
     <button id="pinSubmit">Salir del modo examen</button>
     <div id="pinError" style="color:var(--coral); font-size:11px; margin-top:8px;"></div>
   </div>
@@ -879,44 +877,57 @@ function updateTimer(){
   if(examState.startTime){ t.textContent=formatElapsed(Date.now()-examState.startTime); }
 }
 
+function updateExamToggleButtonText(){
+  var btn=document.getElementById('examToggleBtn');
+  if(btn) btn.textContent = examState.active ? 'Salir modo examen' : 'Activar modo examen';
+}
+
 function showExamActiveScreen(){
   var wrapEl=document.querySelector('.wrap');
   if(wrapEl && wrapEl.parentElement.id!=='examBody'){
     document.getElementById('examBody').appendChild(wrapEl);
   }
   document.getElementById('examOverlay').classList.add('show');
-  document.getElementById('examSetupScreen').style.display='none';
   document.getElementById('examActiveScreen').style.display='flex';
   updateAlertsUI();
   updateTimer();
   requestFS();
   requestWakeLock();
+  updateExamToggleButtonText();
   clearInterval(examState.timerInterval);
   examState.timerInterval=setInterval(updateTimer,1000);
 }
 
-document.getElementById('openExamSetup').addEventListener('click', function(){
-  document.getElementById('examOverlay').classList.add('show');
-  document.getElementById('examSetupScreen').style.display='block';
-  document.getElementById('examActiveScreen').style.display='none';
-});
-document.getElementById('cancelExamSetup').addEventListener('click', function(){
-  document.getElementById('examOverlay').classList.remove('show');
+function dismissOnBackdropClick(modalId){
+  var modal=document.getElementById(modalId);
+  modal.addEventListener('click', function(e){
+    if(e.target===modal){ modal.classList.remove('show'); }
+  });
+}
+dismissOnBackdropClick('examSetupModal');
+dismissOnBackdropClick('pinModal');
+
+document.getElementById('examToggleBtn').addEventListener('click', function(){
+  if(examState.active){
+    document.getElementById('pinModal').classList.add('show');
+    document.getElementById('pinInput').value='';
+    document.getElementById('pinError').textContent='';
+  } else {
+    document.getElementById('examSetupModal').classList.add('show');
+    document.getElementById('examSetupPin').value='';
+    document.getElementById('examSetupError').textContent='';
+  }
 });
 
-document.getElementById('startExamBtn').addEventListener('click', function(){
-  var pin=(document.getElementById('examPin').value||'').trim();
-  if(!pin){ alert('Ingresá un PIN para poder salir después.'); return; }
+document.getElementById('examSetupConfirm').addEventListener('click', function(){
+  var pin=(document.getElementById('examSetupPin').value||'').trim();
+  if(!pin){ document.getElementById('examSetupError').textContent='Ingresá un PIN para poder salir después.'; return; }
   examState.pin=pin; examState.exits=[]; examState.startTime=Date.now(); examState.active=true;
+  document.getElementById('examSetupModal').classList.remove('show');
   showExamActiveScreen();
   saveExamSession();
 });
 
-document.getElementById('examLockBtn').addEventListener('click', function(){
-  document.getElementById('pinModal').classList.add('show');
-  document.getElementById('pinInput').value='';
-  document.getElementById('pinError').textContent='';
-});
 document.getElementById('pinSubmit').addEventListener('click', function(){
   var v=document.getElementById('pinInput').value;
   if(v===examState.pin){ endExam(); }
@@ -928,6 +939,7 @@ function endExam(){
   clearInterval(examState.timerInterval);
   releaseWakeLock();
   clearExamSession();
+  updateExamToggleButtonText();
   document.getElementById('pinModal').classList.remove('show');
   exitFS();
   var wrapEl=document.getElementById('examBody').firstChild;
