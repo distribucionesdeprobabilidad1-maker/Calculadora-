@@ -512,14 +512,16 @@ function renderContinuousChart(dist,params,tail,x){
   }
   clearZlines();
   var shadeA='', shadeB='';
-  if(tail==='left'){ shadeA=areaPath(xmin,x); drawZlineAt(toX(x), x.toFixed(4)); }
-  else if(tail==='right'){ shadeA=areaPath(x,xmax); drawZlineAt(toX(x), x.toFixed(4)); }
-  else {
-    var c=dist.center(params), d=Math.abs(x-c);
-    if(tail==='central'){ shadeA=areaPath(c-d,c+d); }
-    else { shadeA=areaPath(xmin,c-d); shadeB=areaPath(c+d,xmax); }
-    drawZlineAt(toX(c+d), (c+d).toFixed(4));
-    drawZlineAt(toX(c-d), (c-d).toFixed(4));
+  if(x!==null && x!==undefined){
+    if(tail==='left'){ shadeA=areaPath(xmin,x); drawZlineAt(toX(x), x.toFixed(4)); }
+    else if(tail==='right'){ shadeA=areaPath(x,xmax); drawZlineAt(toX(x), x.toFixed(4)); }
+    else {
+      var c=dist.center(params), d=Math.abs(x-c);
+      if(tail==='central'){ shadeA=areaPath(c-d,c+d); }
+      else { shadeA=areaPath(xmin,c-d); shadeB=areaPath(c+d,xmax); }
+      drawZlineAt(toX(c+d), (c+d).toFixed(4));
+      drawZlineAt(toX(c-d), (c-d).toFixed(4));
+    }
   }
   document.getElementById('shadeA').setAttribute('d',shadeA);
   document.getElementById('shadeB').setAttribute('d',shadeB);
@@ -538,9 +540,10 @@ function renderDiscreteChart(dist,params,tail,x){
   document.getElementById('shadeA').setAttribute('d','');
   document.getElementById('shadeB').setAttribute('d','');
   clearZlines();
-  var mk=dist.maxK(params), xr=Math.round(x), lo=0, hi=mk;
+  var hasX=(x!==null && x!==undefined);
+  var mk=dist.maxK(params), xr=hasX?Math.round(x):null, lo=0, hi=mk;
   if(mk>40){
-    var center=Math.max(0,Math.min(mk,xr));
+    var center=hasX?Math.max(0,Math.min(mk,xr)):Math.round(mk/2);
     lo=Math.max(0,center-15); hi=Math.min(mk,center+15);
     if(hi-lo<30){ if(lo===0) hi=Math.min(mk,30); else if(hi===mk) lo=Math.max(0,mk-30); }
   }
@@ -549,6 +552,7 @@ function renderDiscreteChart(dist,params,tail,x){
   maxP = maxP>0 ? maxP*1.15 : 1;
   var n=pairs.length, barW=300/n;
   function hlFn(k){
+    if(!hasX) return false;
     if(tail==='left') return k<=xr;
     if(tail==='right') return k>=xr;
     return k===xr;
@@ -658,8 +662,6 @@ function render(){
     resultFormula.textContent='Completá los parámetros de arriba';
     resultValue.textContent='—';
     resultValue.className='result-value';
-    clearAll();
-    return;
   }
 
   var perr=validateParams(state.distKey, params);
@@ -673,11 +675,13 @@ function render(){
   }
 
   if(rawStr===''||isNaN(raw)){
-    resultLabel.textContent = state.mode==='vp' ? 'PROBABILIDAD' : 'VALOR';
-    resultFormula.textContent = state.mode==='vp' ? 'Completá el valor de arriba' : 'Completá la probabilidad de arriba';
-    resultValue.textContent='—';
-    resultValue.className='result-value';
-    clearAll();
+    if(!params.__incomplete){
+      resultLabel.textContent = state.mode==='vp' ? 'PROBABILIDAD' : 'VALOR';
+      resultFormula.textContent = state.mode==='vp' ? 'Completá el valor de arriba' : 'Completá la probabilidad de arriba';
+      resultValue.textContent='—';
+      resultValue.className='result-value';
+    }
+    if(dist.type==='discrete') renderDiscreteChart(dist,params,state.tail,null); else renderContinuousChart(dist,params,state.tail,null);
     return;
   }
 
