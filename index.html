@@ -58,7 +58,7 @@
   .dist-list-item{width:100%; text-align:center; background:var(--card-bg); border:1px solid var(--card-border); border-radius:10px; color:var(--chalk); font-family:'JetBrains Mono', monospace; font-size:14px; padding:13px; cursor:pointer;}
   .dist-list-item:active{border-color:var(--yellow); color:var(--yellow);}
   .exam-btn-slot{margin-bottom:8px;}
-  .signature{font-family:'Fraunces', serif; font-style:italic; font-size:11.5px; color:var(--chalk-dim); text-align:right; margin-top:10px;}
+  .signature{font-family:'Fraunces', serif; font-style:italic; font-size:12.5px; color:var(--chalk-dim); text-align:right; margin-top:10px;}
   .dist-name{font-family:'Fraunces', serif; font-weight:600; font-size:22px; margin:0 0 10px; letter-spacing:-0.01em;}
   h1 em{font-style:italic; font-weight:500;}
   .card{background:var(--card-bg); border:1px solid var(--card-border); border-radius:14px; padding:11px 14px 9px; margin-bottom:9px;}
@@ -874,10 +874,8 @@ function updateAlertsUI(){
   el.classList.add('warn');
 }
 
-var lastInputBlurTime = 0;
 function logExit(reason){
   var now=Date.now();
-  if(now-lastInputBlurTime<500) return;
   if(now-lastExitLog<1500) return;
   lastExitLog=now;
   var ts=new Date().toLocaleTimeString();
@@ -1029,18 +1027,23 @@ function endExam(){
   alert(msg);
 }
 
-document.addEventListener('focusout', function(e){
-  var t=e.target;
-  if(t && t.tagName==='INPUT' && (t.id==='mainInput' || (t.id && t.id.indexOf('param_')===0))){
-    lastInputBlurTime=Date.now();
-  }
-});
+var CONFIRM_DELAY=500;
 document.addEventListener('visibilitychange', function(){
   if(!examState.active) return;
-  if(document.hidden){ logExit(); }
-  else{ logReturn(); requestWakeLock(); }
+  if(document.hidden){
+    setTimeout(function(){
+      if(document.hidden && examState.active) logExit();
+    }, CONFIRM_DELAY);
+  } else {
+    logReturn(); requestWakeLock();
+  }
 });
-window.addEventListener('blur', function(){ if(examState.active) logExit(); });
+window.addEventListener('blur', function(){
+  if(!examState.active) return;
+  setTimeout(function(){
+    if(!document.hasFocus() && examState.active) logExit();
+  }, CONFIRM_DELAY);
+});
 window.addEventListener('focus', function(){ if(examState.active) logReturn(); });
 document.addEventListener('fullscreenchange', function(){ if(examState.active && !document.fullscreenElement) logExit('salió de pantalla completa'); });
 document.addEventListener('webkitfullscreenchange', function(){ if(examState.active && !document.webkitFullscreenElement) logExit('salió de pantalla completa'); });
