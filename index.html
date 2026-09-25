@@ -1045,8 +1045,26 @@ window.addEventListener('blur', function(){
   }, CONFIRM_DELAY);
 });
 window.addEventListener('focus', function(){ if(examState.active) logReturn(); });
-document.addEventListener('fullscreenchange', function(){ if(examState.active && !document.fullscreenElement) logExit('salió de pantalla completa'); });
-document.addEventListener('webkitfullscreenchange', function(){ if(examState.active && !document.webkitFullscreenElement) logExit('salió de pantalla completa'); });
+document.addEventListener('fullscreenchange', function(){
+  if(!examState.active) return;
+  if(!document.fullscreenElement){
+    setTimeout(function(){
+      if(!examState.active) return;
+      if(!document.hasFocus()){ logExit('salió de pantalla completa'); }
+      else if(!document.fullscreenElement){ requestFS(); }
+    }, CONFIRM_DELAY);
+  }
+});
+document.addEventListener('webkitfullscreenchange', function(){
+  if(!examState.active) return;
+  if(!document.webkitFullscreenElement){
+    setTimeout(function(){
+      if(!examState.active) return;
+      if(!document.hasFocus()){ logExit('salió de pantalla completa'); }
+      else if(!document.webkitFullscreenElement){ requestFS(); }
+    }, CONFIRM_DELAY);
+  }
+});
 
 function persistCloseMarker(){
   if(!examState.active) return;
