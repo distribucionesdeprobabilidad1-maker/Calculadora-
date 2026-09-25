@@ -1041,7 +1041,7 @@ document.addEventListener('visibilitychange', function(){
 window.addEventListener('blur', function(){
   if(!examState.active) return;
   setTimeout(function(){
-    if(!document.hasFocus() && examState.active) logExit();
+    if(document.hidden && examState.active) logExit();
   }, CONFIRM_DELAY);
 });
 window.addEventListener('focus', function(){ if(examState.active) logReturn(); });
@@ -1050,7 +1050,7 @@ document.addEventListener('fullscreenchange', function(){
   if(!document.fullscreenElement){
     setTimeout(function(){
       if(!examState.active) return;
-      if(!document.hasFocus()){ logExit('salió de pantalla completa'); }
+      if(document.hidden){ logExit('salió de pantalla completa'); }
       else if(!document.fullscreenElement){ requestFS(); }
     }, CONFIRM_DELAY);
   }
@@ -1060,7 +1060,7 @@ document.addEventListener('webkitfullscreenchange', function(){
   if(!document.webkitFullscreenElement){
     setTimeout(function(){
       if(!examState.active) return;
-      if(!document.hasFocus()){ logExit('salió de pantalla completa'); }
+      if(document.hidden){ logExit('salió de pantalla completa'); }
       else if(!document.webkitFullscreenElement){ requestFS(); }
     }, CONFIRM_DELAY);
   }
