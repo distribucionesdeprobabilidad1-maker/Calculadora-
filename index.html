@@ -945,7 +945,11 @@ function releaseWakeLock(){
 
 function updateTimer(){
   var t=document.getElementById('examTimer');
-  if(examState.startTime){ t.textContent=formatElapsed(Date.now()-examState.startTime); }
+  if(examState.startTime){
+    var elapsedMs=Date.now()-examState.startTime;
+    t.textContent=formatElapsed(elapsedMs);
+    if(Math.floor(elapsedMs/1000)%20===0){ requestWakeLock(); }
+  }
 }
 
 function updateExamToggleButtonText(){
@@ -997,6 +1001,9 @@ document.getElementById('examSetupConfirm').addEventListener('click', function()
   document.getElementById('examSetupModal').classList.remove('show');
   showExamActiveScreen();
   saveExamSession();
+  if(isMobileDevice() && !('wakeLock' in navigator)){
+    alert('Este celular no puede mantener la pantalla encendida automáticamente durante el examen. Para que no se bloquee sola, andá a Configuración → Pantalla y brillo → Bloqueo automático, y ponelo en "Nunca" mientras dure el examen (después lo podés volver a cambiar).');
+  }
 });
 
 document.getElementById('pinSubmit').addEventListener('click', function(){
