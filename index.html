@@ -122,7 +122,7 @@
   .examBtn{width:100%; margin-top:14px; background:transparent; border:1px dashed var(--line); color:var(--chalk-dim); font-family:'JetBrains Mono',monospace; font-size:14px; padding:13px; border-radius:10px; cursor:pointer;}
   .exam-overlay{position:fixed; inset:0; background:var(--board); z-index:9999; display:none; flex-direction:column;}
   .exam-overlay.show{display:flex;}
-  .back-toast{position:fixed; left:16px; right:16px; bottom:28px; z-index:10001; background:#111; color:#fff; border:1px solid #444; border-radius:12px; padding:12px 14px; font-size:14px; text-align:center; opacity:0; pointer-events:none; transition:opacity .2s;}
+  .back-toast{position:fixed; left:50%; top:42%; transform:translate(-50%,-50%); width:min(86vw,340px); z-index:10001; background:#111; color:#fff; border:1px solid #666; border-radius:14px; padding:18px 18px; font-size:16px; font-weight:600; line-height:1.35; text-align:center; box-shadow:0 8px 30px rgba(0,0,0,.45); opacity:0; pointer-events:none; transition:opacity .2s;}
   .back-toast.show{opacity:1;}
   .exam-setup{max-width:420px; margin:auto; padding:26px 20px; overflow-y:auto; max-height:100vh;}
   .exam-setup h2{font-family:'Fraunces',serif; font-size:22px; margin:0 0 8px;}
@@ -221,7 +221,7 @@
   </div>
 </div>
 
-<div class="back-toast" id="backToast">Para salir del examen usá el botón Menú de inicio</div>
+<div class="back-toast" id="backToast">Para salir de la distribución use el botón de menú de inicio</div>
 <div class="exam-overlay" id="examOverlay">
   <div id="examActiveScreen" style="display:none; flex-direction:column; height:100%;">
     <div class="exam-banner">
@@ -1083,15 +1083,30 @@ var backToastTimer=null;
 function showBackToast(){
   var t=document.getElementById('backToast'); if(!t) return;
   t.classList.add('show'); clearTimeout(backToastTimer);
-  backToastTimer=setTimeout(function(){ t.classList.remove('show'); }, 2500);
+  backToastTimer=setTimeout(function(){ t.classList.remove('show'); }, 3500);
 }
-function armBackTrap(){
-  try{ history.pushState({examTrap:1}, '', location.href); history.pushState({examTrap:2}, '', location.href); }catch(e){}
+var trapN=0, lastTrapHandled=0, trapArmedByTouch=false;
+function pushTrap(){
+  try{ history.pushState({examTrap:1}, '', location.href); return true; }
+  catch(e){
+    try{ trapN++; location.hash='examen'+trapN; return true; }catch(e2){ return false; }
+  }
 }
-window.addEventListener('popstate', function(){
+function armBackTrap(){ pushTrap(); pushTrap(); }
+function onBackAttempt(){
   if(!examState.active) return;
-  try{ history.pushState({examTrap:1}, '', location.href); }catch(e){}
+  var now=Date.now(); if(now-lastTrapHandled<150) return; lastTrapHandled=now;
+  pushTrap();
   showBackToast();
+}
+window.addEventListener('popstate', onBackAttempt);
+window.addEventListener('hashchange', onBackAttempt);
+/* tras el primer toque dentro del examen se rearma (algunos navegadores solo respetan entradas creadas con un toque previo) */
+document.addEventListener('touchstart', function(){
+  if(examState.active && !trapArmedByTouch){ trapArmedByTouch=true; armBackTrap(); }
+}, {passive:true});
+document.addEventListener('click', function(){
+  if(examState.active && !trapArmedByTouch){ trapArmedByTouch=true; armBackTrap(); }
 });
 
 function persistCloseMarker(){
