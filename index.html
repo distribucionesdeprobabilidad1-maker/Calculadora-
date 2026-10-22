@@ -665,6 +665,8 @@ function render(){
     resultFormula.textContent='Completá los parámetros de arriba';
     resultValue.textContent='—';
     resultValue.className='result-value';
+    if(dist.type==='discrete') renderDiscreteChart(dist,params,state.tail,null); else renderContinuousChart(dist,params,state.tail,null);
+    return;
   }
 
   var perr=validateParams(state.distKey, params);
